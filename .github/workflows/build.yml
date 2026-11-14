@@ -42,18 +42,7 @@ jobs:
 
       - name: Patch live-build Debian Contents index path
         run: |
-          # Debian moved Contents indexes below the component directory (main/).
-          # The Ubuntu runner's live-build script still requests the old path.
-          sudo python3 - <<'PY'
-from pathlib import Path
-p = Path("/usr/lib/live/build/lb_chroot_linux-image")
-s = p.read_text()
-old = "/Contents-"
-new = "/main/Contents-"
-if old not in s:
-    raise SystemExit("Expected Contents index URL pattern not found in live-build script")
-p.write_text(s.replace(old, new))
-PY
+          sudo python3 -c 'from pathlib import Path; p=Path("/usr/lib/live/build/lb_chroot_linux-image"); s=p.read_text(); old="/Contents-"; new="/main/Contents-"; assert old in s, "Contents URL pattern not found"; p.write_text(s.replace(old,new))'
           grep -n 'Contents-' /usr/lib/live/build/lb_chroot_linux-image
 
       - name: Build ISO
