@@ -45,7 +45,9 @@ jobs:
           lightdm-gtk-greeter
           xserver-xorg
           network-manager
+          wpasupplicant
           nm-tray
+          user-setup
           calamares
           calamares-settings-debian
           firmware-intel-graphics
