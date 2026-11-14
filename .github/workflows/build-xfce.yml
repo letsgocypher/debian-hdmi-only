@@ -1,0 +1,99 @@
+name: Build Debian HDMI XFCE ISO
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'config/**'
+      - '.github/workflows/build-xfce.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-xfce:
+    runs-on: ubuntu-24.04
+    container:
+      image: debian:trixie
+      options: --privileged
+    timeout-minutes: 360
+    steps:
+      - name: Check out builder configuration
+        uses: actions/checkout@v4
+
+      - name: Install live-build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates git live-build debootstrap xorriso \
+            isolinux syslinux-common \
+            grub-pc-bin grub-efi-amd64-bin grub-efi-ia32-bin grub2-common \
+            squashfs-tools dosfstools mtools rsync
+
+      - name: Prepare complete XFCE desktop package selection
+        run: |
+          set -eux
+          mkdir -p "$RUNNER_TEMP/xfce-build"
+          cp -a "$GITHUB_WORKSPACE/config" "$RUNNER_TEMP/xfce-build/config"
+          rm -f "$RUNNER_TEMP/xfce-build/config/package-lists/"*.list.chroot
+          cat > "$RUNNER_TEMP/xfce-build/config/package-lists/xfce.list.chroot" <<'PACKAGES'
+          # Full Debian XFCE desktop task; keep recommended packages for a complete desktop.
+          task-xfce-desktop
+          calamares
+          calamares-settings-debian
+          user-setup
+          network-manager
+          wpasupplicant
+          sudo
+          firmware-intel-graphics
+          firmware-misc-nonfree
+          intel-microcode
+          PACKAGES
+          test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/default/grub.d/99-hdmi-only.cfg"
+          test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/initramfs-tools/modules"
+          test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/modprobe.d/99-intel-graphics.conf"
+
+      - name: Configure Debian XFCE live image
+        working-directory: ${{ runner.temp }}/xfce-build
+        run: |
+          lb config \
+            --mode debian \
+            --distribution trixie \
+            --architectures amd64 \
+            --initsystem systemd \
+            --binary-images iso-hybrid \
+            --archive-areas "main contrib non-free non-free-firmware" \
+            --security false \
+            --debian-installer false \
+            --bootappend-live "boot=live components hostname=debian-hdmi-xfce i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e"
+
+      - name: Validate XFCE and installer package selection
+        working-directory: ${{ runner.temp }}/xfce-build
+        run: |
+          set -eux
+          grep -Ev '^[[:space:]]*(#|$)' config/package-lists/xfce.list.chroot
+          grep -qx 'task-xfce-desktop' config/package-lists/xfce.list.chroot
+          grep -qx 'calamares' config/package-lists/xfce.list.chroot
+          grep -qx 'calamares-settings-debian' config/package-lists/xfce.list.chroot
+          ! grep -Eq '^(task-kde-desktop|kde-full|plasma-desktop)$' config/package-lists/xfce.list.chroot
+
+      - name: Build XFCE ISO
+        working-directory: ${{ runner.temp }}/xfce-build
+        run: |
+          set -eux
+          lb build
+          mkdir -p "$RUNNER_TEMP/output"
+          cp -v ./*.iso "$RUNNER_TEMP/output/debian-13-trixie-amd64-xfce-hdmi.iso"
+          cd "$RUNNER_TEMP/output"
+          sha256sum *.iso > SHA256SUMS
+
+      - name: Upload XFCE ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-hdmi-xfce-iso
+          path: |
+            ${{ runner.temp }}/output/*.iso
+            ${{ runner.temp }}/output/SHA256SUMS
+          compression-level: 0
+          retention-days: 7
