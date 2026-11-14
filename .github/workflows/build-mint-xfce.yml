@@ -1,4 +1,4 @@
-name: Build Linux Mint HDMI XFCE ISO
+name: Build Linux Mint HDMI XFCE ISO # manually triggered remaster
 
 on:
   workflow_dispatch:
