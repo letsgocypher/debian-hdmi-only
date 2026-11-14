@@ -1,0 +1,2 @@
+# Load Intel graphics early during boot.
+i915
