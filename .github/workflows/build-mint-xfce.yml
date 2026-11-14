@@ -1,0 +1,160 @@
+name: Build Linux Mint HDMI XFCE ISO
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-mint-xfce:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Install ISO remastering tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xorriso squashfs-tools rsync python3 curl ca-certificates
+
+      - name: Download and verify official Linux Mint ISO
+        run: |
+          set -euxo pipefail
+          mkdir -p "$RUNNER_TEMP/mint"
+          cd "$RUNNER_TEMP/mint"
+          ISO_URL="https://mirrors.edge.kernel.org/linuxmint/iso/stable/22.3/linuxmint-22.3-xfce-64bit.iso"
+          curl -fL --retry 5 --retry-delay 3 "$ISO_URL" -o original.iso
+          curl -fL --retry 5 --retry-delay 3 \
+            "https://mirrors.edge.kernel.org/linuxmint/iso/stable/22.3/sha256sum.txt" -o sha256sum.txt
+          grep 'linuxmint-22.3-xfce-64bit.iso' sha256sum.txt | sed 's#  linuxmint-22.3-xfce-64bit.iso#  original.iso#' | sha256sum -c -
+
+      - name: Extract official live filesystem
+        run: |
+          set -euxo pipefail
+          cd "$RUNNER_TEMP/mint"
+          mkdir iso-root
+          xorriso -osirrox on -indev original.iso -extract / iso-root
+          chmod -R u+w iso-root
+          test -s iso-root/casper/filesystem.squashfs
+          unsquashfs -d rootfs iso-root/casper/filesystem.squashfs
+
+      - name: Apply safe cleanup and HDMI configuration
+        run: |
+          set -euxo pipefail
+          cd "$RUNNER_TEMP/mint"
+
+          sudo mount --bind /dev rootfs/dev
+          sudo mount --bind /dev/pts rootfs/dev/pts
+          sudo mount -t proc proc rootfs/proc
+          sudo mount -t sysfs sysfs rootfs/sys
+          sudo cp /etc/resolv.conf rootfs/etc/resolv.conf
+
+          sudo chroot rootfs /bin/bash -euxc '
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y linux-firmware intel-microcode
+
+            # Remove only optional games if present. Do not run autoremove.
+            for pkg in aisleriot gnome-mahjongg gnome-mines gnome-sudoku \
+              five-or-more four-in-a-row gnome-klotski gnome-nibbles \
+              gnome-robots gnome-taquin gnome-tetravex iagno lightsoff swell-foop; do
+              if dpkg-query -W -f="${db:Status-Abbrev}" "$pkg" 2>/dev/null | grep -q "^ii"; then
+                apt-get purge -y "$pkg"
+              fi
+            done
+
+            mkdir -p /etc/default/grub.d
+            cat > /etc/default/grub.d/99-hdmi-only.cfg <<'"'"'GRUB'"'"'
+          # HDMI-focused Intel graphics configuration for Lenovo IdeaPad 310-15ISK.
+          # Connector names are provisional and must be verified on the actual laptop.
+          GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e"
+          GRUB
+
+            mkdir -p /etc/initramfs-tools
+            touch /etc/initramfs-tools/modules
+            grep -qxF i915 /etc/initramfs-tools/modules || echo i915 >> /etc/initramfs-tools/modules
+            printf "options i915 modeset=1\\n" > /etc/modprobe.d/99-intel-graphics.conf
+            update-initramfs -u -k all
+          '
+
+          # Add the same HDMI parameters to Mint's live boot menu entries.
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path("iso-root")
+          changed = []
+          args = "i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e"
+          for path in root.rglob("*"):
+              if not path.is_file() or path.name not in {"grub.cfg", "txt.cfg"}:
+                  continue
+              try:
+                  text = path.read_text(errors="replace")
+              except OSError:
+                  continue
+              lines = text.splitlines(keepends=True)
+              out = []
+              for line in lines:
+                  if "boot=casper" in line and args not in line:
+                      if "---" in line:
+                          line = line.replace("---", args + " ---", 1)
+                      else:
+                          line = line.rstrip("\\n") + " " + args + "\\n"
+                  out.append(line)
+              new_text = "".join(out)
+              if new_text != text:
+                  path.write_text(new_text)
+                  changed.append(str(path.relative_to(root)))
+          if not changed:
+              raise SystemExit("No Mint live boot entries containing boot=casper were found; refusing to publish an unconfigured ISO.")
+          print("Updated live boot files:", ", ".join(changed))
+          PY
+
+          # Rebuild the compressed root filesystem.
+          sudo mksquashfs rootfs iso-root/casper/filesystem.squashfs.new \
+            -noappend -comp xz -b 1M
+          sudo mv iso-root/casper/filesystem.squashfs.new iso-root/casper/filesystem.squashfs
+          sudo chown -R "$(id -u):$(id -g)" iso-root
+          printf '%s' "$(du -sx --block-size=1 rootfs | cut -f1)" > iso-root/casper/filesystem.size
+          dpkg-query --admindir=rootfs/var/lib/dpkg -W --showformat='${Package} ${Version}\\n' \
+            | sort > iso-root/casper/filesystem.manifest
+          grep -Ev '^(casper|ubiquity|ubiquity-frontend-gtk|live-boot|live-config) ' \
+            iso-root/casper/filesystem.manifest > iso-root/casper/filesystem.manifest-desktop
+
+          cd iso-root
+          rm -f MD5SUMS
+          find . -type f ! -path './isolinux/boot.cat' -print0 \
+            | sort -z | xargs -0 md5sum > MD5SUMS
+          cd ..
+
+      - name: Rebuild bootable hybrid ISO
+        run: |
+          set -euxo pipefail
+          cd "$RUNNER_TEMP/mint"
+          args=( -indev original.iso -outdev "$RUNNER_TEMP/linux-mint-22.3-xfce-hdmi.iso" )
+          args+=( -map iso-root/casper/filesystem.squashfs /casper/filesystem.squashfs )
+          args+=( -map iso-root/casper/filesystem.size /casper/filesystem.size )
+          args+=( -map iso-root/casper/filesystem.manifest /casper/filesystem.manifest )
+          args+=( -map iso-root/casper/filesystem.manifest-desktop /casper/filesystem.manifest-desktop )
+          args+=( -map iso-root/MD5SUMS /MD5SUMS )
+          while IFS= read -r -d '' file; do
+            rel="${file#iso-root/}"
+            args+=( -map "$file" "/$rel" )
+          done < <(find iso-root -type f \( -name grub.cfg -o -name txt.cfg \) -print0)
+          args+=( -boot_image any replay -compliance no_emul_toc -padding included )
+          xorriso "${args[@]}"
+          xorriso -indev "$RUNNER_TEMP/linux-mint-22.3-xfce-hdmi.iso" -report_el_torito plain
+          mkdir -p "$RUNNER_TEMP/output"
+          cp "$RUNNER_TEMP/linux-mint-22.3-xfce-hdmi.iso" "$RUNNER_TEMP/output/"
+          cd "$RUNNER_TEMP/output"
+          sha256sum *.iso > SHA256SUMS
+
+      - name: Upload customized ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-mint-22.3-xfce-hdmi-iso
+          path: |
+            ${{ runner.temp }}/output/*.iso
+            ${{ runner.temp }}/output/SHA256SUMS
+          compression-level: 0
+          retention-days: 7
