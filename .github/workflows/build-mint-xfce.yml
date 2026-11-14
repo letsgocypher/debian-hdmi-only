@@ -2,6 +2,10 @@ name: Build Linux Mint HDMI XFCE ISO
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/build-mint-xfce.yml'
 
 permissions:
   contents: read
@@ -75,6 +79,8 @@ jobs:
             grep -qxF i915 /etc/initramfs-tools/modules || echo i915 >> /etc/initramfs-tools/modules
             printf "options i915 modeset=1\\n" > /etc/modprobe.d/99-intel-graphics.conf
             update-initramfs -u -k all
+            apt-get clean
+            rm -rf /var/lib/apt/lists/*
           '
 
           # Add the same HDMI parameters to Mint's live boot menu entries.
