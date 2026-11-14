@@ -40,6 +40,13 @@ jobs:
             --debian-installer false \
             --bootappend-live "boot=live components hostname=debian-hdmi i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e"
 
+      - name: Patch live-build Debian Contents index path
+        run: |
+          # Debian moved Contents indexes below the component directory (main/).
+          # The Ubuntu runner's live-build script still requests the old path.
+          sudo sed -i 's@/dists/\$\{LB_PARENT_DISTRIBUTION\}/Contents-@/dists/\$\{LB_PARENT_DISTRIBUTION\}/main/Contents-@' /usr/lib/live/build/lb_chroot_linux-image
+          grep -n 'Contents-' /usr/lib/live/build/lb_chroot_linux-image
+
       - name: Build ISO
         run: |
           sudo lb build
