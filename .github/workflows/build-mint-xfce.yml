@@ -40,7 +40,8 @@ jobs:
           xorriso -osirrox on -indev original.iso -extract / iso-root
           chmod -R u+w iso-root
           test -s iso-root/casper/filesystem.squashfs
-          unsquashfs -d rootfs iso-root/casper/filesystem.squashfs
+          # Extract as root so SquashFS ownership and extended attributes are preserved.
+          sudo unsquashfs -d rootfs iso-root/casper/filesystem.squashfs
 
       - name: Apply safe cleanup and HDMI configuration
         run: |
