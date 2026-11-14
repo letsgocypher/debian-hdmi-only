@@ -67,7 +67,7 @@ jobs:
             --archive-areas "main contrib non-free non-free-firmware" \
             --security false \
             --debian-installer false \
-            --bootappend-live "boot=live components hostname=debian-hdmi-xfce i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e"
+            --bootappend-live "boot=live components hostname=debian-hdmi-xfce i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e" \\\n            --bootappend-live-failsafe "boot=live components hostname=debian-hdmi-xfce i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e toram"
 
       - name: Build ISO and add optional copy-to-RAM boot entry
         working-directory: ${{ runner.temp }}/xfce-build
