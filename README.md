@@ -30,11 +30,12 @@ This only configures Linux after the kernel starts. It cannot change Lenovo BIOS
 
 Do not install until the live desktop is visible on the external HDMI display. Carefully verify the target disk in the installer before formatting.
 
-## Lightweight minimal edition
+## Debloated KDE Plasma edition
 
-A separate **Build Debian HDMI Minimal ISO** workflow creates a lean LXQt edition for older or lower-powered laptops. It uses LXQt core with Openbox and LightDM instead of KDE Plasma, disables APT recommends, and deliberately omits a preinstalled browser, office suite, and large application bundle. It keeps NetworkManager with the small `nm-tray` indicator, Calamares, Intel graphics firmware/microcode, and the HDMI boot configuration.
+A separate **Build Debian HDMI KDE Minimal ISO** workflow builds a lighter KDE Plasma edition for older laptops. It keeps Plasma as the desktop environment but avoids the full `task-kde-desktop` package bundle and disables APT recommended packages.
 
-To build it, open **Actions** → **Build Debian HDMI Minimal ISO** → **Run workflow**. Download the `debian-hdmi-lxqt-minimal-iso` artifact. This is a separate build; it does not replace the KDE edition.
+The selected desktop includes Plasma, the X11 window manager/session, SDDM, Dolphin, Konsole, System Settings, NetworkManager integration, audio controls, and essential device/power services. It keeps Calamares, Intel graphics firmware/microcode, Wi-Fi support, and the HDMI boot configuration. It deliberately leaves out a preinstalled browser, office suite, games, and large optional KDE applications.
 
-The minimal edition is intended to reduce background services, desktop overhead, and installed packages. Actual performance still depends on RAM, storage, CPU, and graphics; it cannot make old hardware equivalent to newer hardware.
+To build it, open **Actions** → **Build Debian HDMI KDE Minimal ISO** → **Run workflow**. Download the `debian-hdmi-kde-plasma-minimal-iso` artifact. This is separate from the existing standard KDE build.
 
+This reduces the default software selection and avoids optional background components; it does not strip essential Plasma services or promise a specific RAM footprint. Actual performance depends on hardware and the applications running.
