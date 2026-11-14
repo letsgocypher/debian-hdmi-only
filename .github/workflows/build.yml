@@ -34,6 +34,7 @@ jobs:
             --mode debian \
             --distribution trixie \
             --architectures amd64 \
+            --initsystem systemd \
             --binary-images iso-hybrid \
             --archive-areas "main contrib non-free non-free-firmware" \
             --security false \
