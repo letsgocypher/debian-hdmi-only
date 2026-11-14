@@ -14,6 +14,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    container:
+      image: debian:trixie
+      options: --privileged
     timeout-minutes: 360
     steps:
       - name: Check out builder configuration
@@ -21,16 +24,16 @@ jobs:
 
       - name: Install live-build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            live-build debootstrap xorriso \
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates git live-build debootstrap xorriso \
             isolinux syslinux-common \
             grub-pc-bin grub-efi-amd64-bin grub-efi-ia32-bin grub2-common \
             squashfs-tools dosfstools mtools rsync
 
       - name: Configure Debian live image
         run: |
-          sudo lb config \
+          lb config \
             --mode debian \
             --distribution trixie \
             --architectures amd64 \
@@ -41,38 +44,11 @@ jobs:
             --debian-installer false \
             --bootappend-live "boot=live components hostname=debian-hdmi i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e"
 
-      - name: Patch live-build Debian Contents index path
-        run: |
-          sudo python3 -c 'from pathlib import Path; p=Path("/usr/lib/live/build/lb_chroot_linux-image"); s=p.read_text(); old="/Contents-"; new="/main/Contents-"; assert old in s, "Contents URL pattern not found"; p.write_text(s.replace(old,new))'
-          grep -n 'Contents-' /usr/lib/live/build/lb_chroot_linux-image
-
-      - name: Stage BIOS bootloader files for live-build
-        run: |
-          mkdir -p config/bootloaders/isolinux config/bootloaders/syslinux_common
-          ISOLINUX_BIN="$(dpkg -L isolinux | grep '/isolinux\\.bin$' | head -n1)"
-          VESAMENU="$(dpkg -L syslinux-common | grep '/vesamenu\\.c32$' | head -n1)"
-          LDLINUX="$(dpkg -L syslinux-common | grep '/ldlinux\\.c32$' | head -n1)"
-          test -s "$ISOLINUX_BIN"
-          test -s "$VESAMENU"
-          test -s "$LDLINUX"
-          install -m 0644 "$ISOLINUX_BIN" config/bootloaders/isolinux/isolinux.bin
-          install -m 0644 "$VESAMENU" config/bootloaders/isolinux/vesamenu.c32
-          install -m 0644 "$LDLINUX" config/bootloaders/isolinux/ldlinux.c32
-          install -m 0644 "$VESAMENU" config/bootloaders/syslinux_common/vesamenu.c32
-          if [ -d /usr/share/live/build/bootloaders/isolinux ]; then
-            cp -an /usr/share/live/build/bootloaders/isolinux/. config/bootloaders/isolinux/
-          fi
-          if [ -d /usr/share/live/build/bootloaders/syslinux_common ]; then
-            cp -an /usr/share/live/build/bootloaders/syslinux_common/. config/bootloaders/syslinux_common/
-          fi
-          find config/bootloaders -maxdepth 2 -type f -printf '%p\\n'
-
       - name: Build ISO
         run: |
-          sudo lb build
+          lb build
           mkdir -p "$RUNNER_TEMP/output"
-          sudo cp -v ./*.iso "$RUNNER_TEMP/output/debian-13-trixie-amd64-kde-hdmi.iso"
-          sudo chown -R "$USER":"$USER" "$RUNNER_TEMP/output"
+          cp -v ./*.iso "$RUNNER_TEMP/output/debian-13-trixie-amd64-kde-hdmi.iso"
           cd "$RUNNER_TEMP/output"
           sha256sum *.iso > SHA256SUMS
 
