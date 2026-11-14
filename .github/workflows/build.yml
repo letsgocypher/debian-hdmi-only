@@ -36,6 +36,7 @@ jobs:
             --architectures amd64 \
             --binary-images iso-hybrid \
             --archive-areas "main contrib non-free non-free-firmware" \
+            --security false \
             --debian-installer false \
             --bootappend-live "boot=live components hostname=debian-hdmi i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e"
 
