@@ -8,7 +8,7 @@ on:
       - '.github/workflows/build-mint-xfce.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-mint-xfce:
@@ -164,5 +164,22 @@ jobs:
             ${{ runner.temp }}/output/SHA256SUMS
           compression-level: 0
           retention-days: 7
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: mint-22.3-xfce-hdmi-build-${{ github.run_number }}
+          name: Linux Mint 22.3 XFCE HDMI Edition — Build #${{ github.run_number }}
+          body: |
+            Community remaster based on the official Linux Mint 22.3 XFCE ISO.
+
+            Includes moderate cleanup, Firefox retained, and HDMI-focused Intel graphics boot parameters.
+            Connector names are provisional; test the live session on the target laptop before installing.
+
+            SHA256 checksum is included as SHA256SUMS.
+          files: |
+            ${{ runner.temp }}/output/linux-mint-22.3-xfce-hdmi.iso
+            ${{ runner.temp }}/output/SHA256SUMS
+          fail_on_unmatched_files: true
 
 # Verified mirror checksum path: stable/22.3.
