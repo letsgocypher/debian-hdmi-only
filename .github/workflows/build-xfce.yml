@@ -49,7 +49,49 @@ jobs:
           firmware-intel-graphics
           firmware-misc-nonfree
           intel-microcode
+          # Mint-inspired XFCE appearance and familiar desktop utilities.
+          arc-theme
+          papirus-icon-theme
+          xfce4-whiskermenu-plugin
+          xfce4-pulseaudio-plugin
+          xfce4-indicator-plugin
+          xfce4-power-manager
+          xfce4-notifyd
+          xfce4-screenshooter
+          xfce4-taskmanager
+          thunar-archive-plugin
+          thunar-volman
+          file-roller
+          pavucontrol
+          network-manager-gnome
+          fonts-noto
           PACKAGES
+
+          # Apply a consistent Mint-like dark theme and icon set to new users.
+          install -d "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml"
+          install -d "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/xdg/xfce4/xfconf/xfce-perchannel-xml"
+          cat > "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml" <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <channel name="xsettings" version="1.0">
+            <property name="Net" type="empty">
+              <property name="ThemeName" type="string" value="Arc-Darker"/>
+              <property name="IconThemeName" type="string" value="Papirus-Dark"/>
+            </property>
+            <property name="Gtk" type="empty">
+              <property name="FontName" type="string" value="Noto Sans 10"/>
+            </property>
+          </channel>
+          XML
+          cat > "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml" <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <channel name="xfwm4" version="1.0">
+            <property name="general" type="empty">
+              <property name="theme" type="string" value="Arc-Darker"/>
+            </property>
+          </channel>
+          XML
+          cp -a "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/." "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/xdg/xfce4/xfconf/xfce-perchannel-xml/"
+
           test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/default/grub.d/99-hdmi-only.cfg"
           test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/initramfs-tools/modules"
           test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/modprobe.d/99-intel-graphics.conf"
@@ -76,7 +118,33 @@ jobs:
           grep -qx 'task-xfce-desktop' config/package-lists/xfce.list.chroot
           grep -qx 'calamares' config/package-lists/xfce.list.chroot
           grep -qx 'calamares-settings-debian' config/package-lists/xfce.list.chroot
-          ! grep -Eq '^(task-kde-desktop|kde-full|plasma-desktop)$' config/package-lists/xfce.list.chroot
+          ! grep -Eq '^(task-kde-desktop|kde-full|plasma-desktop)
+
+      - name: Build XFCE ISO
+        working-directory: ${{ runner.temp }}/xfce-build
+        run: |
+          set -eux
+          lb build
+          mkdir -p "$RUNNER_TEMP/output"
+          cp -v ./*.iso "$RUNNER_TEMP/output/debian-13-trixie-amd64-xfce-hdmi.iso"
+          cd "$RUNNER_TEMP/output"
+          sha256sum *.iso > SHA256SUMS
+
+      - name: Upload XFCE ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-hdmi-xfce-iso
+          path: |
+            ${{ runner.temp }}/output/*.iso
+            ${{ runner.temp }}/output/SHA256SUMS
+          compression-level: 0
+          retention-days: 7
+ config/package-lists/xfce.list.chroot
+          grep -qx 'arc-theme' config/package-lists/xfce.list.chroot
+          grep -qx 'papirus-icon-theme' config/package-lists/xfce.list.chroot
+          grep -qx 'xfce4-whiskermenu-plugin' config/package-lists/xfce.list.chroot
+          grep -q 'Arc-Darker' config/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
+          grep -q 'Papirus-Dark' config/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
 
       - name: Build XFCE ISO
         working-directory: ${{ runner.temp }}/xfce-build
