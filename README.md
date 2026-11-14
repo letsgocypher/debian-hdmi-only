@@ -29,3 +29,9 @@ The installed system receives the same parameters through `/etc/default/grub.d/9
 This only configures Linux after the kernel starts. It cannot change Lenovo BIOS/UEFI video output or choose USB boot. If the firmware boot menu is invisible, the USB must be selected by a separate method (for example, the NOVO button or USB-first boot order).
 
 Do not install until the live desktop is visible on the external HDMI display. Carefully verify the target disk in the installer before formatting.
+
+## Full Debian XFCE edition
+
+The **Build Debian HDMI XFCE ISO** workflow builds a complete Debian 13 XFCE live desktop. It uses Debian's `task-xfce-desktop` package task and keeps APT's normal recommended packages enabled, rather than stripping desktop components. Calamares and Debian's Calamares settings are included for graphical installation, along with live user setup, NetworkManager, Wi-Fi support, Intel graphics firmware/microcode, and the existing HDMI boot configuration.
+
+Open **Actions** → **Build Debian HDMI XFCE ISO** to follow the build. The artifact name is `debian-hdmi-xfce-iso`.
