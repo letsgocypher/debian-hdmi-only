@@ -1,4 +1,4 @@
-name: Publish Debian XFCE HDMI ISO Release
+name: Publish Debian HDMI Desktop Editions
 
 on:
   workflow_dispatch:
@@ -15,48 +15,71 @@ jobs:
   publish:
     runs-on: ubuntu-24.04
     steps:
-      - name: Download the verified XFCE ISO build artifact
+      - name: Download successful KDE Plasma ISO build
+        uses: actions/download-artifact@v4
+        with:
+          name: debian-hdmi-kde-iso
+          repository: ${{ github.repository }}
+          run-id: 43588200983
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: downloads/kde
+
+      - name: Download successful XFCE ISO build
         uses: actions/download-artifact@v4
         with:
           name: debian-hdmi-xfce-iso
           repository: ${{ github.repository }}
           run-id: 43600814222
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: release-assets
+          path: downloads/xfce
 
-      - name: Verify ISO and checksum
+      - name: Verify both ISOs and prepare release assets
         shell: bash
         run: |
           set -euo pipefail
-          test -s release-assets/debian-13-trixie-amd64-xfce-hdmi.iso
-          test -s release-assets/SHA256SUMS
-          cd release-assets
-          sha256sum --check SHA256SUMS
+          test -s downloads/kde/debian-13-trixie-amd64-kde-hdmi.iso
+          test -s downloads/kde/SHA256SUMS
+          (cd downloads/kde && sha256sum --check SHA256SUMS)
+          test -s downloads/xfce/debian-13-trixie-amd64-xfce-hdmi.iso
+          test -s downloads/xfce/SHA256SUMS
+          (cd downloads/xfce && sha256sum --check SHA256SUMS)
+          mkdir -p release-assets
+          cp downloads/kde/debian-13-trixie-amd64-kde-hdmi.iso release-assets/
+          cp downloads/xfce/debian-13-trixie-amd64-xfce-hdmi.iso release-assets/
+          cp downloads/kde/SHA256SUMS release-assets/SHA256SUMS-kde.txt
+          cp downloads/xfce/SHA256SUMS release-assets/SHA256SUMS-xfce.txt
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: debian-13-xfce-hdmi-2026.11.14
-          name: Debian 13 XFCE HDMI Edition
-          target_commitish: 75fa4198eb9fbfa9cef9f6eab59ee933d96344fb
+          tag_name: debian-13-hdmi-desktops-2026.11.14
+          name: Debian 13 HDMI Desktop Editions - KDE Plasma and XFCE
+          target_commitish: 140e6ecbb9eb27face8584220acb96f2e647abe2
           body: |
-            ## Debian 13 XFCE HDMI Edition
+            ## Debian 13 (Trixie) HDMI Desktop Editions
 
-            A full Debian 13 (Trixie) amd64 XFCE live ISO configured for HDMI-first use on systems with an unusable internal eDP display.
+            Two full amd64 live ISO editions, built from successful GitHub Actions runs and checksum-verified before release.
 
-            ### Included
-            - Debian XFCE desktop task with normal recommended packages
-            - Calamares graphical installer and Debian Calamares settings
+            ### KDE Plasma
+            - Full Debian KDE Plasma desktop build
+            - Calamares installer and Debian Calamares settings
+            - Intel graphics firmware/microcode and HDMI-oriented i915 boot parameters
+
+            ### XFCE
+            - Full Debian XFCE desktop task with normal recommended packages
+            - Calamares installer and Debian Calamares settings
             - NetworkManager and Wi-Fi support
-            - Intel graphics firmware and microcode
-            - i915 kernel modesetting and HDMI boot parameters
+            - Intel graphics firmware/microcode and HDMI-oriented i915 boot parameters
 
-            **Important:** The HDMI connector name in the boot parameters is hardware-dependent and has not been physically verified on every laptop. Linux kernel parameters do not change BIOS/UEFI video output. Test the live desktop over HDMI before installing, and verify the target disk carefully in Calamares.
+            ### Important hardware notes
+            The eDP-1 and HDMI-A-1 connector names are provisional and hardware-dependent; physical HDMI output has not been verified on every device. Linux kernel parameters do not change BIOS/UEFI video output. Test the live desktop over HDMI before installing, and carefully verify the target disk in Calamares.
 
-            SHA256 checksum is included as `SHA256SUMS`.
+            Separate SHA256 checksum files are attached for each ISO.
           files: |
+            release-assets/debian-13-trixie-amd64-kde-hdmi.iso
+            release-assets/SHA256SUMS-kde.txt
             release-assets/debian-13-trixie-amd64-xfce-hdmi.iso
-            release-assets/SHA256SUMS
+            release-assets/SHA256SUMS-xfce.txt
           fail_on_unmatched_files: true
           draft: false
           prerelease: false
