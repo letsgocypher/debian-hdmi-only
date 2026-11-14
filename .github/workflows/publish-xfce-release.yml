@@ -1,0 +1,63 @@
+name: Publish Debian XFCE HDMI ISO Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/publish-xfce-release.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download the verified XFCE ISO build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: debian-hdmi-xfce-iso
+          repository: ${{ github.repository }}
+          run-id: 43600814222
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: release-assets
+
+      - name: Verify ISO and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s release-assets/debian-13-trixie-amd64-xfce-hdmi.iso
+          test -s release-assets/SHA256SUMS
+          cd release-assets
+          sha256sum --check SHA256SUMS
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: debian-13-xfce-hdmi-2026.11.14
+          name: Debian 13 XFCE HDMI Edition
+          target_commitish: 75fa4198eb9fbfa9cef9f6eab59ee933d96344fb
+          body: |
+            ## Debian 13 XFCE HDMI Edition
+
+            A full Debian 13 (Trixie) amd64 XFCE live ISO configured for HDMI-first use on systems with an unusable internal eDP display.
+
+            ### Included
+            - Debian XFCE desktop task with normal recommended packages
+            - Calamares graphical installer and Debian Calamares settings
+            - NetworkManager and Wi-Fi support
+            - Intel graphics firmware and microcode
+            - i915 kernel modesetting and HDMI boot parameters
+
+            **Important:** The HDMI connector name in the boot parameters is hardware-dependent and has not been physically verified on every laptop. Linux kernel parameters do not change BIOS/UEFI video output. Test the live desktop over HDMI before installing, and verify the target disk carefully in Calamares.
+
+            SHA256 checksum is included as `SHA256SUMS`.
+          files: |
+            release-assets/debian-13-trixie-amd64-xfce-hdmi.iso
+            release-assets/SHA256SUMS
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: false
+          make_latest: true
