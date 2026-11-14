@@ -27,8 +27,17 @@ jobs:
           mkdir -p "$RUNNER_TEMP/mint"
           cd "$RUNNER_TEMP/mint"
           ISO_URL="https://mirrors.edge.kernel.org/linuxmint/stable/22.3/linuxmint-22.3-xfce-64bit.iso"
-          curl -fL --retry 5 --retry-delay 3 "$ISO_URL" -o original.iso
-          curl -fL --retry 5 --retry-delay 3 \
+          # Resume interrupted large downloads; retry transient mirror resets.
+          for attempt in $(seq 1 12); do
+            if curl -fL --connect-timeout 30 --retry 5 --retry-all-errors --retry-delay 3 \
+              --continue-at - "$ISO_URL" -o original.iso; then
+              break
+            fi
+            echo "ISO download attempt $attempt failed; retrying from the partial file..."
+            sleep 5
+          done
+          test -s original.iso
+          curl -fL --connect-timeout 30 --retry 10 --retry-all-errors --retry-delay 3 \
             "https://mirrors.edge.kernel.org/linuxmint/stable/22.3/sha256sum.txt" -o sha256sum.txt
           awk '$2 ~ /linuxmint-22.3-xfce-64bit.iso$/ {print $1 "  original.iso"; found=1} END {if (!found) exit 1}' sha256sum.txt | sha256sum -c -
 
