@@ -46,6 +46,14 @@ jobs:
           sudo python3 -c 'from pathlib import Path; p=Path("/usr/lib/live/build/lb_chroot_linux-image"); s=p.read_text(); old="/Contents-"; new="/main/Contents-"; assert old in s, "Contents URL pattern not found"; p.write_text(s.replace(old,new))'
           grep -n 'Contents-' /usr/lib/live/build/lb_chroot_linux-image
 
+      - name: Provide BIOS bootloader files
+        run: |
+          sudo mkdir -p /root/isolinux
+          sudo install -m 0644 /usr/lib/ISOLINUX/isolinux.bin /root/isolinux/isolinux.bin
+          sudo install -m 0644 /usr/lib/syslinux/modules/bios/vesamenu.c32 /root/isolinux/vesamenu.c32
+          test -s /root/isolinux/isolinux.bin
+          test -s /root/isolinux/vesamenu.c32
+
       - name: Build ISO
         run: |
           sudo lb build
