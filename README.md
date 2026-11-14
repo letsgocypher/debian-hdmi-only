@@ -32,6 +32,6 @@ Do not install until the live desktop is visible on the external HDMI display. C
 
 ## Full Debian XFCE edition
 
-The **Build Debian HDMI XFCE ISO** workflow builds a complete Debian 13 XFCE live desktop. It uses Debian's `task-xfce-desktop` package task and keeps APT's normal recommended packages enabled, rather than stripping desktop components. Calamares and Debian's Calamares settings are included for graphical installation, along with live user setup, NetworkManager, Wi-Fi support, Intel graphics firmware/microcode, and the existing HDMI boot configuration.
+The **Build Debian HDMI XFCE ISO** workflow builds a complete Debian 13 XFCE live desktop with a Linux Mint XFCE-inspired appearance. It uses Debian's `task-xfce-desktop` package task and keeps APT's normal recommended packages enabled, rather than stripping desktop components. It adds the Arc-Darker GTK/window theme, Papirus-Dark icons, Whisker application menu, and familiar XFCE utilities. Calamares and Debian's Calamares settings are included for graphical installation, along with live user setup, NetworkManager, Wi-Fi support, Intel graphics firmware/microcode, and the existing HDMI boot configuration. This is a Debian-based Mint-inspired setup, not the official Linux Mint edition.
 
 Open **Actions** → **Build Debian HDMI XFCE ISO** to follow the build. The artifact name is `debian-hdmi-xfce-iso`.
