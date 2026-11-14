@@ -48,15 +48,11 @@ jobs:
 
       - name: Provide BIOS bootloader files
         run: |
-          ISOLINUX_BIN="$(dpkg -L isolinux | grep '/isolinux\.bin$' | head -n1)"
-          VESAMENU="$(dpkg -L syslinux-common | grep '/vesamenu\.c32$' | head -n1)"
-          echo "ISOLINUX_BIN=$ISOLINUX_BIN"
-          echo "VESAMENU=$VESAMENU"
-          test -n "$ISOLINUX_BIN"
-          test -n "$VESAMENU"
-          sudo mkdir -p /root/isolinux
-          sudo install -m 0644 "$ISOLINUX_BIN" /root/isolinux/isolinux.bin
-          sudo install -m 0644 "$VESAMENU" /root/isolinux/vesamenu.c32
+          mkdir -p config/bootloaders
+          cp -a /usr/share/live/build/bootloaders/isolinux config/bootloaders/isolinux
+          test -s config/bootloaders/isolinux/isolinux.bin
+          test -s config/bootloaders/isolinux/vesamenu.c32
+          ls -l config/bootloaders/isolinux/isolinux.bin config/bootloaders/isolinux/vesamenu.c32
 
       - name: Build ISO
         run: |
