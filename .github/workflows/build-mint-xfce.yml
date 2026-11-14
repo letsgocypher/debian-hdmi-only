@@ -123,7 +123,7 @@ jobs:
 
           cd iso-root
           rm -f MD5SUMS
-          find . -type f ! -path './isolinux/boot.cat' -print0 \
+          find . -type f ! -name 'MD5SUMS' ! -path './isolinux/boot.cat' -print0 \
             | sort -z | xargs -0 md5sum > MD5SUMS
           cd ..
 
