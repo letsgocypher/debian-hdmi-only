@@ -99,7 +99,7 @@ jobs:
                       if "---" in line:
                           line = line.replace("---", args + " ---", 1)
                       else:
-                          line = line.rstrip("\\n") + " " + args + "\\n"
+                          line = line.rstrip("\n") + " " + args + "\n"
                   out.append(line)
               new_text = "".join(out)
               if new_text != text:
