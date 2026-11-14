@@ -1,0 +1,101 @@
+name: Build Debian HDMI Minimal ISO
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'config/**'
+      - '.github/workflows/build-minimal.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-minimal:
+    runs-on: ubuntu-24.04
+    container:
+      image: debian:trixie
+      options: --privileged
+    timeout-minutes: 360
+    steps:
+      - name: Check out builder configuration
+        uses: actions/checkout@v4
+
+      - name: Install live-build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates git live-build debootstrap xorriso \
+            isolinux syslinux-common \
+            grub-pc-bin grub-efi-amd64-bin grub-efi-ia32-bin grub2-common \
+            squashfs-tools dosfstools mtools rsync
+
+      - name: Prepare isolated minimal edition configuration
+        run: |
+          set -eux
+          mkdir -p "$RUNNER_TEMP/minimal-build"
+          cp -a "$GITHUB_WORKSPACE/config" "$RUNNER_TEMP/minimal-build/config"
+          rm -f "$RUNNER_TEMP/minimal-build/config/package-lists/"*.list.chroot
+          cat > "$RUNNER_TEMP/minimal-build/config/package-lists/minimal.list.chroot" <<'PACKAGES'
+          # Lightweight LXQt desktop; no KDE, office suite, browser, or large app bundle.
+          lxqt-core
+          openbox
+          lightdm
+          lightdm-gtk-greeter
+          xserver-xorg
+          network-manager
+          nm-tray
+          calamares
+          calamares-settings-debian
+          firmware-intel-graphics
+          firmware-misc-nonfree
+          intel-microcode
+          sudo
+          PACKAGES
+          test -s "$RUNNER_TEMP/minimal-build/config/includes.chroot/etc/default/grub.d/99-hdmi-only.cfg"
+          test -s "$RUNNER_TEMP/minimal-build/config/includes.chroot/etc/initramfs-tools/modules"
+          test -s "$RUNNER_TEMP/minimal-build/config/includes.chroot/etc/modprobe.d/99-intel-graphics.conf"
+
+      - name: Configure minimal Debian live image
+        working-directory: ${{ runner.temp }}/minimal-build
+        run: |
+          lb config \
+            --mode debian \
+            --distribution trixie \
+            --architectures amd64 \
+            --initsystem systemd \
+            --binary-images iso-hybrid \
+            --archive-areas "main contrib non-free non-free-firmware" \
+            --apt-recommends false \
+            --security false \
+            --debian-installer false \
+            --bootappend-live "boot=live components hostname=debian-hdmi-minimal i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e"
+
+      - name: Validate selected packages before building
+        working-directory: ${{ runner.temp }}/minimal-build
+        run: |
+          set -eux
+          grep -Ev '^[[:space:]]*(#|$)' config/package-lists/minimal.list.chroot
+          test ! -e config/package-lists/desktop.list.chroot
+          test ! -e config/package-lists/kde.list.chroot
+
+      - name: Build minimal ISO
+        working-directory: ${{ runner.temp }}/minimal-build
+        run: |
+          set -eux
+          lb build
+          mkdir -p "$RUNNER_TEMP/output"
+          cp -v ./*.iso "$RUNNER_TEMP/output/debian-13-trixie-amd64-lxqt-minimal-hdmi.iso"
+          cd "$RUNNER_TEMP/output"
+          sha256sum *.iso > SHA256SUMS
+
+      - name: Upload minimal ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-hdmi-lxqt-minimal-iso
+          path: |
+            ${{ runner.temp }}/output/*.iso
+            ${{ runner.temp }}/output/SHA256SUMS
+          compression-level: 0
+          retention-days: 7
