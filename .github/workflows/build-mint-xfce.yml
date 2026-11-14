@@ -30,7 +30,7 @@ jobs:
           curl -fL --retry 5 --retry-delay 3 "$ISO_URL" -o original.iso
           curl -fL --retry 5 --retry-delay 3 \
             "https://mirrors.edge.kernel.org/linuxmint/stable/22.3/sha256sum.txt" -o sha256sum.txt
-          grep 'linuxmint-22.3-xfce-64bit.iso' sha256sum.txt | sed 's#  linuxmint-22.3-xfce-64bit.iso#  original.iso#' | sha256sum -c -
+          awk '$2 ~ /linuxmint-22.3-xfce-64bit.iso$/ {print $1 "  original.iso"; found=1} END {if (!found) exit 1}' sha256sum.txt | sha256sum -c -
 
       - name: Extract official live filesystem
         run: |
