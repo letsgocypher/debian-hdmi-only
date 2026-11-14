@@ -46,13 +46,26 @@ jobs:
           sudo python3 -c 'from pathlib import Path; p=Path("/usr/lib/live/build/lb_chroot_linux-image"); s=p.read_text(); old="/Contents-"; new="/main/Contents-"; assert old in s, "Contents URL pattern not found"; p.write_text(s.replace(old,new))'
           grep -n 'Contents-' /usr/lib/live/build/lb_chroot_linux-image
 
-      - name: Provide BIOS bootloader files
+      - name: Stage BIOS bootloader files for live-build
         run: |
-          mkdir -p config/bootloaders
-          cp -a /usr/share/live/build/bootloaders/isolinux config/bootloaders/isolinux
-          test -s config/bootloaders/isolinux/isolinux.bin
-          test -s config/bootloaders/isolinux/vesamenu.c32
-          ls -l config/bootloaders/isolinux/isolinux.bin config/bootloaders/isolinux/vesamenu.c32
+          mkdir -p config/bootloaders/isolinux config/bootloaders/syslinux_common
+          ISOLINUX_BIN="$(dpkg -L isolinux | grep '/isolinux\\.bin$' | head -n1)"
+          VESAMENU="$(dpkg -L syslinux-common | grep '/vesamenu\\.c32$' | head -n1)"
+          LDLINUX="$(dpkg -L syslinux-common | grep '/ldlinux\\.c32$' | head -n1)"
+          test -s "$ISOLINUX_BIN"
+          test -s "$VESAMENU"
+          test -s "$LDLINUX"
+          install -m 0644 "$ISOLINUX_BIN" config/bootloaders/isolinux/isolinux.bin
+          install -m 0644 "$VESAMENU" config/bootloaders/isolinux/vesamenu.c32
+          install -m 0644 "$LDLINUX" config/bootloaders/isolinux/ldlinux.c32
+          install -m 0644 "$VESAMENU" config/bootloaders/syslinux_common/vesamenu.c32
+          if [ -d /usr/share/live/build/bootloaders/isolinux ]; then
+            cp -an /usr/share/live/build/bootloaders/isolinux/. config/bootloaders/isolinux/
+          fi
+          if [ -d /usr/share/live/build/bootloaders/syslinux_common ]; then
+            cp -an /usr/share/live/build/bootloaders/syslinux_common/. config/bootloaders/syslinux_common/
+          fi
+          find config/bootloaders -maxdepth 2 -type f -printf '%p\\n'
 
       - name: Build ISO
         run: |
