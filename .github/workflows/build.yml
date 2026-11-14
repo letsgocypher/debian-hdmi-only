@@ -1,0 +1,59 @@
+name: Build Debian HDMI KDE ISO
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'config/**'
+      - '.github/workflows/build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - name: Check out builder configuration
+        uses: actions/checkout@v4
+
+      - name: Install live-build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            live-build debootstrap xorriso \
+            isolinux syslinux-common \
+            grub-pc-bin grub-efi-amd64-bin grub-efi-ia32-bin grub2-common \
+            squashfs-tools dosfstools mtools rsync
+
+      - name: Configure Debian live image
+        run: |
+          sudo lb config \
+            --mode debian \
+            --distribution trixie \
+            --architectures amd64 \
+            --binary-images iso-hybrid \
+            --archive-areas "main contrib non-free non-free-firmware" \
+            --debian-installer false \
+            --bootappend-live "boot=live components hostname=debian-hdmi i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e"
+
+      - name: Build ISO
+        run: |
+          sudo lb build
+          mkdir -p "$RUNNER_TEMP/output"
+          sudo cp -v ./*.iso "$RUNNER_TEMP/output/debian-13-trixie-amd64-kde-hdmi.iso"
+          sudo chown -R "$USER":"$USER" "$RUNNER_TEMP/output"
+          cd "$RUNNER_TEMP/output"
+          sha256sum *.iso > SHA256SUMS
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-hdmi-kde-iso
+          path: |
+            ${{ runner.temp }}/output/*.iso
+            ${{ runner.temp }}/output/SHA256SUMS
+          compression-level: 0
+          retention-days: 7
