@@ -164,3 +164,5 @@ jobs:
             ${{ runner.temp }}/output/SHA256SUMS
           compression-level: 0
           retention-days: 7
+
+# Verified mirror checksum path: stable/22.3.
