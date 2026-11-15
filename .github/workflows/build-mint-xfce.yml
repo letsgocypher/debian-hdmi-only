@@ -202,6 +202,15 @@ jobs:
           compression-level: 0
           retention-days: 7
 
+      - name: Split ISO for GitHub Releases (2 GiB per-file limit)
+        run: |
+          set -euxo pipefail
+          cd "$RUNNER_TEMP/output"
+          iso=( *.iso )
+          test "${#iso[@]}" -eq 1
+          split -b 1900M -d -a 2 "${iso[0]}" "${iso[0]}.part"
+          ls -lh "${iso[0]}".part*
+
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -213,11 +222,13 @@ jobs:
             Includes moderate cleanup, Firefox retained, and HDMI-focused Intel graphics boot parameters.
             Connector names are provisional; test the live session on the target laptop before installing.
 
-            SHA256 checksum is included as SHA256SUMS.
-          # The ISO exceeds GitHub Releases' 2 GiB per-file limit.
-          # The full ISO remains available in the Actions artifact above.
+            The ISO is split into numbered 1,900 MiB parts to fit GitHub's per-file release limit.
+            Download every .part file into one folder and reassemble with:
+            cat linux-mint-22.3-xfce-hdmi.iso.part* > linux-mint-22.3-xfce-hdmi.iso
+            Verify the reconstructed ISO using SHA256SUMS.
           files: |
             ${{ runner.temp }}/output/SHA256SUMS
+            ${{ runner.temp }}/output/*.iso.part*
           fail_on_unmatched_files: true
 
 # Verified mirror checksum path: stable/22.3.
