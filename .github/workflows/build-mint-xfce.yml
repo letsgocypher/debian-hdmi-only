@@ -85,7 +85,7 @@ jobs:
             # Preserve XFCE, Firefox, Mint core tools, installer, Intel firmware,
             # Wi-Fi/networking, and recovery essentials.
             mapfile -t removable < <(
-              dpkg-query -W -f='\${binary:Package}\\n' 2>/dev/null |
+              dpkg-query -W -f="\\${binary:Package}\\\\n" 2>/dev/null |
               grep -E '^(libreoffice|thunderbird|hypnotix|celluloid|pix|drawing|simple-scan|warpinator|webapp-manager|transmission|aisleriot|gnome-mahjongg|gnome-mines|gnome-sudoku|five-or-more|four-in-a-row|gnome-klotski|gnome-nibbles|gnome-robots|gnome-taquin|gnome-tetravex|iagno|lightsoff|swell-foop|cups|printer-driver-|sane-|blueman|blueberry|bluetooth|bluez|cheese|rhythmbox|shotwell|gnome-calendar|gnome-contacts|gnome-maps|gnome-weather|gnome-clocks|gnome-music|evolution|hexchat|pidgin)' || true
             )
             if [ "${#removable[@]}" -gt 0 ]; then
