@@ -9,7 +9,7 @@ on:
       - '.github/workflows/build.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -29,7 +29,7 @@ jobs:
             ca-certificates git live-build debootstrap xorriso \
             isolinux syslinux-common \
             grub-pc-bin grub-efi-amd64-bin grub-efi-ia32-bin grub2-common \
-            squashfs-tools dosfstools mtools rsync
+            squashfs-tools dosfstools mtools rsync 7zip
 
       - name: Configure Debian live image
         run: |
@@ -45,20 +45,47 @@ jobs:
             --bootappend-live "boot=live components hostname=debian-hdmi i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e" \
             --bootappend-live-failsafe "boot=live components hostname=debian-hdmi i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e toram"
 
-      - name: Build ISO
+      - name: Build and split ISO archive
         run: |
+          set -euo pipefail
           lb build
           mkdir -p "$RUNNER_TEMP/output"
           cp -v ./*.iso "$RUNNER_TEMP/output/debian-13-trixie-amd64-kde-plasma-hdmi.iso"
           cd "$RUNNER_TEMP/output"
-          sha256sum *.iso > SHA256SUMS
+          sha256sum *.iso > ISO-SHA256SUMS
+          7zz a -t7z -v1900m debian-13-trixie-amd64-kde-plasma-hdmi.7z debian-13-trixie-amd64-kde-plasma-hdmi.iso
+          sha256sum debian-13-trixie-amd64-kde-plasma-hdmi.7z.* > ARCHIVE-SHA256SUMS
 
-      - name: Upload ISO artifact
+      - name: Upload ISO and split archive
         uses: actions/upload-artifact@v4
         with:
           name: debian-hdmi-kde-plasma-iso
           path: |
             ${{ runner.temp }}/output/*.iso
-            ${{ runner.temp }}/output/SHA256SUMS
+            ${{ runner.temp }}/output/*.7z.*
+            ${{ runner.temp }}/output/*SHA256SUMS
           compression-level: 0
           retention-days: 7
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: debian-13-kde-plasma-hdmi-build-${{ github.run_number }}
+          name: Debian 13 KDE Plasma HDMI-only Build ${{ github.run_number }}
+          body: |
+            Debian 13 (Trixie) amd64 KDE Plasma live ISO.
+
+            The ISO is distributed as 7-Zip split volumes. Download every
+            `.7z.001`, `.7z.002`, ... part into the same directory and
+            extract starting from the `.7z.001` file with 7-Zip.
+
+            Verify the downloaded volumes using ARCHIVE-SHA256SUMS.
+            ISO-SHA256SUMS contains the checksum of the original ISO.
+
+            HDMI connector names are hardware-dependent and have not been
+            confirmed on every system. Test the live session before installing.
+          files: |
+            ${{ runner.temp }}/output/*.7z.*
+            ${{ runner.temp }}/output/*SHA256SUMS
+          fail_on_unmatched_files: true
+          make_latest: true
