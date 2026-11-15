@@ -9,7 +9,7 @@ on:
       - '.github/workflows/build-xfce.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-xfce:
@@ -124,3 +124,23 @@ jobs:
             ${{ runner.temp }}/output/SHA256SUMS
           compression-level: 0
           retention-days: 7
+
+      - name: Publish Debian XFCE GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: debian-13-xfce-hdmi-build-${{ github.run_number }}
+          name: Debian 13 XFCE — Mint-inspired HDMI Edition — Build #${{ github.run_number }}
+          body: |
+            Debian 13 Trixie XFCE live ISO with a Linux Mint-inspired desktop appearance.
+
+            Includes Arc-Darker theme, Papirus-Dark icons, Whisker menu, Calamares installer,
+            Intel graphics firmware/microcode, and HDMI-focused boot parameters.
+
+            The complete ISO is attached to the GitHub Actions artifact for this run
+            (debian-hdmi-xfce-iso). The SHA256SUMS file is attached to this release.
+
+            HDMI connector names are provisional; test the live session on the target laptop
+            before installing. This is Debian, not an official Linux Mint release.
+          files: |
+            ${{ runner.temp }}/output/SHA256SUMS
+          fail_on_unmatched_files: true
