@@ -49,7 +49,43 @@ jobs:
           firmware-intel-graphics
           firmware-misc-nonfree
           intel-microcode
+          arc-theme
+          papirus-icon-theme
+          xfce4-whiskermenu-plugin
+          xfce4-goodies
+          fonts-cantarell
+          fonts-noto-color-emoji
           PACKAGES
+
+          # Set Mint-inspired defaults for new users: dark Arc GTK/window theme,
+          # Papirus icons, and a familiar clean XFCE desktop.
+          mkdir -p "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml"
+          cat > "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml" <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <channel name="xsettings" version="1.0">
+            <property name="Net" type="empty">
+              <property name="ThemeName" type="string" value="Arc-Darker"/>
+              <property name="IconThemeName" type="string" value="Papirus-Dark"/>
+            </property>
+            <property name="Gtk" type="empty">
+              <property name="FontName" type="string" value="Cantarell 10"/>
+              <property name="MonospaceFontName" type="string" value="Monospace 10"/>
+              <property name="CursorThemeName" type="string" value="Adwaita"/>
+              <property name="CursorSize" type="int" value="24"/>
+            </property>
+          </channel>
+          XML
+          mkdir -p "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml"
+          cat > "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml" <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <channel name="xfwm4" version="1.0">
+            <property name="general" type="empty">
+              <property name="theme" type="string" value="Arc-Darker"/>
+              <property name="title_font" type="string" value="Cantarell Bold 10"/>
+              <property name="button_layout" type="string" value="O|HMC"/>
+            </property>
+          </channel>
+          XML
           test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/default/grub.d/99-hdmi-only.cfg"
           test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/initramfs-tools/modules"
           test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/modprobe.d/99-intel-graphics.conf"
@@ -67,7 +103,7 @@ jobs:
             --security false \
             --debian-installer false \
             --bootappend-live "boot=live components hostname=debian-hdmi-xfce i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e" \
-            --bootappend-live-failsafe "boot=live components hostname=debian-hdmi-xfce i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e toram"
+            --bootappend-live-failsafe "boot=live components hostname=debian-hdmi-xfce i915.modeset=1 video=eDP-1:d video=HDMI-A-1:e"
 
       - name: Build ISO
         working-directory: ${{ runner.temp }}/xfce-build
