@@ -81,11 +81,13 @@ jobs:
             apt-get update
             apt-get install -y linux-firmware intel-microcode
 
-            # Remove optional games and the full LibreOffice suite if installed.
-            # Keep Firefox, Mint system tools, drivers, networking, and recovery utilities.
+            # Lean desktop profile: remove games, office suite, and optional user apps.
+            # Keep Firefox, Mint system tools, installer, drivers, networking, and recovery utilities.
             for pkg in aisleriot gnome-mahjongg gnome-mines gnome-sudoku \
               five-or-more four-in-a-row gnome-klotski gnome-nibbles \
-              gnome-robots gnome-taquin gnome-tetravex iagno lightsoff swell-foop; do
+              gnome-robots gnome-taquin gnome-tetravex iagno lightsoff swell-foop \
+              thunderbird hypnotix celluloid pix drawing simple-scan \
+              warpinator webapp-manager transmission-gtk; do
               if dpkg-query -W -f="\${db:Status-Abbrev}" "$pkg" 2>/dev/null | grep -q "^ii"; then
                 apt-get purge -y "$pkg"
               fi
@@ -219,7 +221,7 @@ jobs:
           body: |
             Community remaster based on the official Linux Mint 22.3 XFCE ISO.
 
-            Includes moderate cleanup, Firefox retained, and HDMI-focused Intel graphics boot parameters.
+            Lean XFCE profile: optional games, LibreOffice, Thunderbird, and selected optional desktop apps removed; Firefox and Mint system tools retained. HDMI-focused Intel graphics boot parameters included.
             Connector names are provisional; test the live session on the target laptop before installing.
 
             The ISO is split into numbered 1,900 MiB parts to fit GitHub's per-file release limit.
