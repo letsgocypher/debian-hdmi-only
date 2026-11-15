@@ -30,16 +30,4 @@ This only configures Linux after the kernel starts. It cannot change Lenovo BIOS
 
 Do not install until the live desktop is visible on the external HDMI display. Carefully verify the target disk in the installer before formatting.
 
-## Debian 13 XFCE edition
-
-The **Build Debian HDMI XFCE ISO** workflow builds a Debian 13 Trixie live ISO with the XFCE desktop, Calamares installer, live user setup, NetworkManager, Wi-Fi support, Bluetooth utilities, Intel graphics firmware/microcode, and HDMI-focused boot parameters. It includes a configured XFCE panel, Whisker application menu, Greybird theme, Papirus icons, and common XFCE utilities.
-
-Open **Actions** → **Build Debian HDMI XFCE ISO** to follow the build. The artifact name is `debian-hdmi-xfce-iso`.
-
-## Debian 13 KDE edition
-
-The **Build Debian HDMI KDE ISO** workflow builds a Debian 13 Trixie live ISO with KDE Plasma, Calamares installer, Intel graphics firmware/microcode, and HDMI-focused boot parameters.
-
-Open **Actions** → **Build Debian HDMI KDE ISO** to follow the build. The artifact name is `debian-hdmi-kde-iso`.
-
 **Testing warning:** a successful build and boot-menu inspection do not prove that HDMI works on the laptop. Test the live session on HDMI first; do not install until the display, Wi-Fi, keyboard and installer are confirmed working. Carefully verify the target disk before formatting.
