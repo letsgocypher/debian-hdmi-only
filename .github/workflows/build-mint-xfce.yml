@@ -21,13 +21,20 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             xorriso squashfs-tools rsync python3 curl ca-certificates
 
-      - name: Download and verify official Linux Mint ISO
+      - name: Cache official Linux Mint ISO
+        id: mint-iso-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/mint/original.iso
+          key: linux-mint-22.3-xfce-64bit-iso-v1
+
+      - name: Download and verify official Linux Mint ISO (cache miss only)
+        if: steps.mint-iso-cache.outputs.cache-hit != 'true'
         run: |
           set -euxo pipefail
           mkdir -p "$RUNNER_TEMP/mint"
           cd "$RUNNER_TEMP/mint"
           ISO_URL="https://mirrors.edge.kernel.org/linuxmint/stable/22.3/linuxmint-22.3-xfce-64bit.iso"
-          # Resume interrupted large downloads; retry transient mirror resets.
           for attempt in $(seq 1 12); do
             if curl -fL --connect-timeout 30 --retry 5 --retry-all-errors --retry-delay 3 \
               --continue-at - "$ISO_URL" -o original.iso; then
@@ -36,6 +43,12 @@ jobs:
             echo "ISO download attempt $attempt failed; retrying from the partial file..."
             sleep 5
           done
+          test -s original.iso
+
+      - name: Verify official Linux Mint ISO (cached or newly downloaded)
+        run: |
+          set -euxo pipefail
+          cd "$RUNNER_TEMP/mint"
           test -s original.iso
           curl -fL --connect-timeout 30 --retry 10 --retry-all-errors --retry-delay 3 \
             "https://mirrors.edge.kernel.org/linuxmint/stable/22.3/sha256sum.txt" -o sha256sum.txt
