@@ -1,14 +1,14 @@
-# Debian 13 KDE HDMI-only ISO
+# Debian 13 KDE Plasma HDMI-only ISO
 
 Builds an amd64 Debian 13 (Trixie) KDE Plasma live ISO with Intel i915 modesetting and HDMI-focused kernel parameters.
 
 ## Build the ISO
 
 1. Open **Actions**.
-2. Select **Build Debian HDMI KDE ISO**.
+2. Select **Build Debian HDMI KDE Plasma ISO**.
 3. Press **Run workflow** on the main branch.
 4. Wait for the build to finish.
-5. Download the `debian-hdmi-kde-iso` artifact from the run's Artifacts section.
+5. Download the `debian-hdmi-kde-plasma-iso` artifact from the run's Artifacts section.
 
 The artifact contains the ISO and SHA256 checksum.
 
