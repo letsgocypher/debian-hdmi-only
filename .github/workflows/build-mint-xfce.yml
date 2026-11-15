@@ -92,8 +92,8 @@ jobs:
             done
 
             mapfile -t office_packages < <(dpkg-query -W -f="\${binary:Package}\\n" 2>/dev/null | grep -E "^libreoffice" || true)
-            if (\${#office_packages[@]} > 0); then
-              apt-get purge -y "\${office_packages[@]}"
+            if [ "${#office_packages[@]}" -gt 0 ]; then
+              apt-get purge -y "${office_packages[@]}"
             fi
 
             mkdir -p /etc/default/grub.d
