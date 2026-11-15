@@ -81,7 +81,8 @@ jobs:
             apt-get update
             apt-get install -y linux-firmware intel-microcode
 
-            # Remove only optional games if present. Do not run autoremove.
+            # Remove optional games and the full LibreOffice suite if installed.
+            # Keep Firefox, Mint system tools, drivers, networking, and recovery utilities.
             for pkg in aisleriot gnome-mahjongg gnome-mines gnome-sudoku \
               five-or-more four-in-a-row gnome-klotski gnome-nibbles \
               gnome-robots gnome-taquin gnome-tetravex iagno lightsoff swell-foop; do
@@ -89,6 +90,11 @@ jobs:
                 apt-get purge -y "$pkg"
               fi
             done
+
+            mapfile -t office_packages < <(dpkg-query -W -f="\${binary:Package}\\n" 2>/dev/null | grep -E "^libreoffice" || true)
+            if (\${#office_packages[@]} > 0); then
+              apt-get purge -y "\${office_packages[@]}"
+            fi
 
             mkdir -p /etc/default/grub.d
             cat > /etc/default/grub.d/99-hdmi-only.cfg <<'"'"'GRUB'"'"'
@@ -208,8 +214,9 @@ jobs:
             Connector names are provisional; test the live session on the target laptop before installing.
 
             SHA256 checksum is included as SHA256SUMS.
+          # The ISO exceeds GitHub Releases' 2 GiB per-file limit.
+          # The full ISO remains available in the Actions artifact above.
           files: |
-            ${{ runner.temp }}/output/linux-mint-22.3-xfce-hdmi.iso
             ${{ runner.temp }}/output/SHA256SUMS
           fail_on_unmatched_files: true
 
