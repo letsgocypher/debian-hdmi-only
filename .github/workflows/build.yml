@@ -1,4 +1,4 @@
-name: Build Debian HDMI KDE ISO
+name: Build Debian HDMI KDE Plasma ISO
 
 on:
   workflow_dispatch:
@@ -49,14 +49,14 @@ jobs:
         run: |
           lb build
           mkdir -p "$RUNNER_TEMP/output"
-          cp -v ./*.iso "$RUNNER_TEMP/output/debian-13-trixie-amd64-kde-hdmi.iso"
+          cp -v ./*.iso "$RUNNER_TEMP/output/debian-13-trixie-amd64-kde-plasma-hdmi.iso"
           cd "$RUNNER_TEMP/output"
           sha256sum *.iso > SHA256SUMS
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
-          name: debian-hdmi-kde-iso
+          name: debian-hdmi-kde-plasma-iso
           path: |
             ${{ runner.temp }}/output/*.iso
             ${{ runner.temp }}/output/SHA256SUMS
