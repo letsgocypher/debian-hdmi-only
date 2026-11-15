@@ -49,10 +49,25 @@ jobs:
           firmware-intel-graphics
           firmware-misc-nonfree
           intel-microcode
-          arc-theme
+          greybird-gtk-theme
           papirus-icon-theme
           xfce4-whiskermenu-plugin
           xfce4-goodies
+          xfce4-appfinder
+          xfce4-screenshooter
+          xfce4-taskmanager
+          xfce4-power-manager
+          xfce4-pulseaudio-plugin
+          xfce4-notifyd
+          thunar-volman
+          thunar-archive-plugin
+          tumbler
+          ristretto
+          mousepad
+          pavucontrol
+          network-manager-gnome
+          blueman
+          file-roller
           fonts-cantarell
           fonts-noto-color-emoji
           PACKAGES
@@ -86,6 +101,69 @@ jobs:
             </property>
           </channel>
           XML
+          # Ship a complete Mint-XFCE-inspired first-login profile, not only GTK colours.
+          # XFCE reads these defaults from /etc/skel for every newly created user.
+          PANEL_DIR="$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml"
+          mkdir -p "$PANEL_DIR"
+          cat > "$PANEL_DIR/xfce4-panel.xml" <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <channel name="xfce4-panel" version="1.0">
+            <property name="configver" type="int" value="2"/>
+            <property name="panels" type="array">
+              <value type="int" value="1"/>
+            </property>
+            <property name="panels" type="empty">
+              <property name="panel-1" type="empty">
+                <property name="position" type="string" value="p=8;x=0;y=0"/>
+                <property name="length" type="uint" value="100"/>
+                <property name="position-locked" type="bool" value="true"/>
+                <property name="size" type="uint" value="36"/>
+                <property name="icon-size" type="uint" value=" for"/>
+                <property name="length-adjust" type="bool" value="true"/>
+                <property name="autohide-behavior" type="uint" value="0"/>
+                <property name="mode" type="uint" value="0"/>
+                <property name="plugin-ids" type="array">
+                  <value type="int" value="1"/>
+                  <value type="int" value="2"/>
+                  <value type="int" value="3"/>
+                  <value type="int" value="4"/>
+                  <value type="int" value="5"/>
+                  <value type="int" value="6"/>
+                  <value type="int" value="7"/>
+                </property>
+              </property>
+            </property>
+            <property name="plugins" type="empty">
+              <property name="plugin-1" type="string" value="whiskermenu"/>
+              <property name="plugin-2" type="string" value="separator"/>
+              <property name="plugin-3" type="string" value="tasklist"/>
+              <property name="plugin-4" type="string" value="separator"/>
+              <property name="plugin-5" type="string" value="systray"/>
+              <property name="plugin-6" type="string" value="pulseaudio"/>
+              <property name="plugin-7" type="string" value="clock"/>
+            </property>
+          </channel>
+          XML
+          # Keep the desktop clean and familiar: home/trash icons, readable labels.
+          cat > "$PANEL_DIR/xfce4-desktop.xml" <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <channel name="xfce4-desktop" version="1.0">
+            <property name="desktop-icons" type="empty">
+              <property name="style" type="int" value="2"/>
+              <property name="file-icons" type="empty">
+                <property name="show-home" type="bool" value="true"/>
+                <property name="show-filesystem" type="bool" value="false"/>
+                <property name="show-trash" type="bool" value="true"/>
+                <property name="show-removable" type="bool" value="true"/>
+              </property>
+            </property>
+          </channel>
+          XML
+          # Greybird is available in Debian; use a clean Mint-like light desktop with Papirus icons.
+          sed -i 's/value="Arc-Darker"/value="Greybird"/g; s/value="Papirus-Dark"/value="Papirus"/g' "$PANEL_DIR/xsettings.xml" "$PANEL_DIR/xfwm4.xml"
+          test -s "$PANEL_DIR/xfce4-panel.xml"
+          test -s "$PANEL_DIR/xfce4-desktop.xml"
+
           test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/default/grub.d/99-hdmi-only.cfg"
           test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/initramfs-tools/modules"
           test -s "$RUNNER_TEMP/xfce-build/config/includes.chroot/etc/modprobe.d/99-intel-graphics.conf"
