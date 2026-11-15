@@ -126,6 +126,7 @@ jobs:
           retention-days: 7
 
       - name: Split ISO for GitHub Releases (2 GiB per-file limit)
+        shell: bash
         run: |
           set -euxo pipefail
           cd "$RUNNER_TEMP/output"
