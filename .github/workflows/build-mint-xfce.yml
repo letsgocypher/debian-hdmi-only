@@ -107,7 +107,9 @@ jobs:
           '
 
           # Detach virtual filesystems before repacking; never include host /proc, /sys or /dev.
-          sudo umount rootfs/sys
+          # sysfs can remain busy after package hooks; lazy-detach it so it is
+          # excluded from the image without blocking the rebuild.
+          sudo umount -l rootfs/sys
           sudo umount rootfs/proc
           sudo umount rootfs/dev/pts
           sudo umount rootfs/dev
