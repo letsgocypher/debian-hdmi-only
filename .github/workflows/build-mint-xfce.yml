@@ -65,7 +65,7 @@ jobs:
           # Extract as root so SquashFS ownership and extended attributes are preserved.
           sudo unsquashfs -d rootfs iso-root/casper/filesystem.squashfs
 
-      - name: Apply safe cleanup and HDMI configuration
+      - name: Patch Mint system — live cleanup and HDMI progress
         run: |
           set -euxo pipefail
           cd "$RUNNER_TEMP/mint"
@@ -78,9 +78,12 @@ jobs:
 
           sudo chroot rootfs /bin/bash -euxc '
             export DEBIAN_FRONTEND=noninteractive
+            echo '=== PATCH 1/6: Refresh package indexes and ensure Intel firmware ==='
             apt-get update
             apt-get install -y linux-firmware intel-microcode
 
+            echo "=== PATCH 2/6: Inspect and remove selected optional applications ==="
+            echo "::notice title=Mint cleanup::Checking optional office, media, chat and game packages; Bluetooth, printing/PDF and photo apps are retained."
             echo "::group::SAFE CLEANUP — selected optional applications"
             echo "Keeping: XFCE, Firefox, Mint core tools, installer, Intel firmware, Wi-Fi/networking, Bluetooth, printing/PDF, Pix/Drawing/Shotwell photo tools, and recovery essentials."
             mapfile -t removable < <(
@@ -96,12 +99,14 @@ jobs:
             fi
             echo "::endgroup::"
 
+            echo "=== PATCH 3/6: Remove orphaned dependencies and clear package caches ==="
             echo "::group::SAFE CLEANUP — orphaned packages and package caches"
             apt-get autoremove --purge -y
             apt-get clean
             rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
             echo "::endgroup::"
 
+            echo "=== PATCH 4/6: Trim documentation, manuals and non-English locale data ==="
             echo "::group::SAFE CLEANUP — documentation and unused locale data"
             rm -rf /usr/share/doc/* /usr/share/man/* /usr/share/info/*
             find /usr/share/locale -mindepth 1 -maxdepth 1 \\
@@ -110,6 +115,7 @@ jobs:
             echo "::endgroup::"
 
 
+            echo "=== PATCH 5/6: Configure HDMI boot parameters and rebuild initramfs ==="
             mkdir -p /etc/default/grub.d
             cat > /etc/default/grub.d/99-hdmi-only.cfg <<'"'"'GRUB'"'"'
           # HDMI-focused Intel graphics configuration for Lenovo IdeaPad 310-15ISK.
@@ -134,6 +140,7 @@ jobs:
           sudo umount rootfs/dev/pts
           sudo umount rootfs/dev
 
+          echo "=== PATCH 6/6: Patch live GRUB/ISOLINUX boot entries ==="
           # Add the same HDMI parameters to Mint's live boot menu entries.
           python3 - <<'PY'
           from pathlib import Path
@@ -167,6 +174,7 @@ jobs:
           print("Updated live boot files:", ", ".join(changed))
           PY
 
+          echo "=== REPACK 1/2: Compress the patched live filesystem (SquashFS) ==="
           # Rebuild the compressed root filesystem.
           sudo mksquashfs rootfs iso-root/casper/filesystem.squashfs.new \
             -noappend -comp xz -b 1M
@@ -184,7 +192,7 @@ jobs:
             | sort -z | xargs -0 md5sum > MD5SUMS
           cd ..
 
-      - name: Rebuild bootable hybrid ISO
+      - name: Rebuild bootable hybrid ISO — write patched files and boot records
         run: |
           set -euxo pipefail
           cd "$RUNNER_TEMP/mint"
