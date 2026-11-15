@@ -125,6 +125,15 @@ jobs:
           compression-level: 0
           retention-days: 7
 
+      - name: Split ISO for GitHub Releases (2 GiB per-file limit)
+        run: |
+          set -euxo pipefail
+          cd "$RUNNER_TEMP/output"
+          iso=( *.iso )
+          test "${#iso[@]}" -eq 1
+          split -b 1900M -d -a 2 "${iso[0]}" "${iso[0]}.part"
+          ls -lh "${iso[0]}".part*
+
       - name: Publish Debian XFCE GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -136,11 +145,14 @@ jobs:
             Includes Arc-Darker theme, Papirus-Dark icons, Whisker menu, Calamares installer,
             Intel graphics firmware/microcode, and HDMI-focused boot parameters.
 
-            The complete ISO is attached to the GitHub Actions artifact for this run
-            (debian-hdmi-xfce-iso). The SHA256SUMS file is attached to this release.
+            The ISO is split into numbered 1,900 MiB parts to fit GitHub's per-file release limit.
+            Download every .part file into one folder and reassemble with:
+            cat debian-13-trixie-amd64-xfce-hdmi.iso.part* > debian-13-trixie-amd64-xfce-hdmi.iso
+            Verify the reconstructed ISO using SHA256SUMS.
 
             HDMI connector names are provisional; test the live session on the target laptop
             before installing. This is Debian, not an official Linux Mint release.
           files: |
             ${{ runner.temp }}/output/SHA256SUMS
+            ${{ runner.temp }}/output/*.iso.part*
           fail_on_unmatched_files: true
